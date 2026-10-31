@@ -1,15 +1,5 @@
-// --- CONFIG SUPABASE ---
-const SUPABASE_URL = 'https://yubfkorfgwsjdkscjttq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_hs0Yn0u566BmuHjrboNcnw_XJjOLcKw';
-
-// ป้องกันการสร้าง client ซ้ำ
-if (!window.supabaseInstance) {
-    window.supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-}
-const supabase = window.supabaseInstance;
-
-let products = [];
-let expenseSettings = {
+let products = JSON.parse(localStorage.getItem('shop_products')) || [];
+let expenseSettings = JSON.parse(localStorage.getItem('shop_expense_settings')) || {
     packaging: 20,
     decoration: 15,
     platformFee: 5,
@@ -20,10 +10,9 @@ let expenseSettings = {
 };
 
 let currentSetItems = [];
-let comparisonSets = [];
+let comparisonSets = JSON.parse(localStorage.getItem('shop_comparisons')) || [];
 
-// --- GLOBAL FUNCTIONS (ให้ HTML เรียกใช้งานได้ทันที) ---
-
+// ฟังก์ชันสลับหน้า Tab (Phase 2, 3, 4)
 window.switchTab = function(tab) {
     const sec2 = document.getElementById('section-phase2');
     const sec3 = document.getElementById('section-phase3');
@@ -47,47 +36,41 @@ window.switchTab = function(tab) {
     if (tab === 'phase2') {
         sec2.style.display = 'block';
         if (btn2) btn2.classList.add('active');
-        if (mainTitle) mainTitle.textContent = 'My Shop Manager';
-        if (mainSub) mainSub.textContent = 'Product Database';
-        if (badge) badge.textContent = 'Phase 2';
+        mainTitle.textContent = 'My Shop Manager';
+        mainSub.textContent = 'Product Database';
+        badge.textContent = 'Phase 2';
         renderProducts();
     } else if (tab === 'phase3') {
         sec3.style.display = 'block';
         if (btn3) btn3.classList.add('active');
-        if (mainTitle) mainTitle.textContent = 'Expense Management';
-        if (mainSub) mainSub.textContent = 'จัดการค่าใช้จ่ายของร้านค้า';
-        if (badge) badge.textContent = 'Phase 3';
+        mainTitle.textContent = 'Expense Management';
+        mainSub.textContent = 'จัดการค่าใช้จ่ายของร้านค้า';
+        badge.textContent = 'Phase 3';
         initExpenseValues();
     } else if (tab === 'phase4') {
         sec4.style.display = 'block';
         if (btn4) btn4.classList.add('active');
-        if (mainTitle) mainTitle.textContent = 'Pricing Calculator';
-        if (mainSub) mainSub.textContent = 'ระบบคำนวณต้นทุนและราคาขาย';
-        if (badge) badge.textContent = 'Phase 4';
+        mainTitle.textContent = 'Pricing Calculator';
+        mainSub.textContent = 'ระบบคำนวณต้นทุนและราคาขาย';
+        badge.textContent = 'Phase 4';
         initPricingCalculator();
     }
 };
 
-window.openAddModal = function() {
-    const modal = document.getElementById('product-modal');
-    const form = document.getElementById('product-form');
-    if (modal && form) {
-        document.getElementById('modal-title').textContent = 'เพิ่มสินค้าใหม่';
-        form.reset();
-        document.getElementById('prod-id').value = '';
-        modal.style.display = 'flex';
-    }
-};
+// --- LOGIC PHASE 2 ---
+function calculateProductTier(cost, minCost, maxCost) {
+    if (products.length < 2 || minCost === maxCost) return { text: 'รอจัดระดับ', class: 'default' };
+    const range = maxCost - minCost;
+    if (cost >= minCost + (range * 2) / 3) return { text: 'Big', class: 'big' };
+    if (cost >= minCost + range / 3) return { text: 'Medium', class: 'medium' };
+    return { text: 'Small', class: 'small' };
+}
 
-window.closeModal = function() {
-    const modal = document.getElementById('product-modal');
-    if (modal) modal.style.display = 'none';
-};
-
-window.deleteProduct = async function(id) {
+window.deleteProduct = function(id) {
     if (confirm('คุณต้องการลบรายการสินค้านี้ใช่หรือไม่?')) {
-        const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) alert('เกิดข้อผิดพลาดในการลบสินค้า');
+        products = products.filter(p => p.id !== id);
+        localStorage.setItem('shop_products', JSON.stringify(products));
+        renderProducts();
     }
 };
 
@@ -100,65 +83,24 @@ window.editProduct = function(id) {
     document.getElementById('prod-sku').value = p.sku === 'ไม่มี SKU' ? '' : p.sku;
     document.getElementById('prod-cost').value = p.cost;
     document.getElementById('prod-stock').value = p.stock;
-    document.getElementById('prod-price').value = p.price && p.price.replace(' ฿', '') !== 'ยังไม่ระบุ' ? p.price.replace(' ฿', '') : '';
+    document.getElementById('prod-price').value = p.price.replace(' ฿', '') === 'ยังไม่ระบุ' ? '' : p.price.replace(' ฿', '');
     document.getElementById('product-modal').style.display = 'flex';
 };
-
-// --- FETCH & DATA MANAGEMENT ---
-
-async function loadAllDataFromSupabase() {
-    await fetchProductsFromSupabase();
-    await fetchSettingsFromSupabase();
-    await fetchComparisonsFromSupabase();
-}
-
-async function fetchProductsFromSupabase() {
-    const { data, error } = await supabase.from('products').select('*');
-    if (!error && data) {
-        products = data;
-        renderProducts();
-        initPricingCalculator();
-    }
-}
-
-async function fetchSettingsFromSupabase() {
-    const { data, error } = await supabase.from('shop_settings').select('*').eq('id', 1).single();
-    if (!error && data && data.data) {
-        expenseSettings = data.data;
-        initExpenseValues();
-    }
-}
-
-async function fetchComparisonsFromSupabase() {
-    const { data, error } = await supabase.from('shop_settings').select('*').eq('id', 2).single();
-    if (!error && data && data.data) {
-        comparisonSets = data.data;
-        renderComparisons();
-    }
-}
-
-function calculateProductTier(cost, minCost, maxCost) {
-    if (products.length < 2 || minCost === maxCost) return { text: 'รอจัดระดับ', class: 'default' };
-    const range = maxCost - minCost;
-    if (cost >= minCost + (range * 2) / 3) return { text: 'Big', class: 'big' };
-    if (cost >= minCost + range / 3) return { text: 'Medium', class: 'medium' };
-    return { text: 'Small', class: 'small' };
-}
 
 function renderProducts(filter = '') {
     const productList = document.getElementById('product-list');
     if (!productList) return;
     productList.innerHTML = '';
-    const filtered = products.filter(p => p.name && p.name.toLowerCase().includes(filter.toLowerCase()));
+    const filtered = products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
     
     const totalItemsEl = document.getElementById('total-items');
     const totalCostEl = document.getElementById('total-cost');
     const tierMessage = document.getElementById('tier-message');
 
     if (totalItemsEl) totalItemsEl.textContent = products.length;
-    if (totalCostEl) totalCostEl.textContent = products.reduce((sum, p) => sum + ((p.cost || 0) * (p.stock || 0)), 0).toLocaleString();
+    if (totalCostEl) totalCostEl.textContent = products.reduce((sum, p) => sum + (p.cost * p.stock), 0).toLocaleString();
 
-    const costs = products.map(p => p.cost || 0);
+    const costs = products.map(p => p.cost);
     const minCost = costs.length ? Math.min(...costs) : 0;
     const maxCost = costs.length ? Math.max(...costs) : 0;
 
@@ -183,9 +125,9 @@ function renderProducts(filter = '') {
                     <span class="status-badge ${tier.class}">${tier.text}</span>
                 </div>
                 <div class="product-details">
-                    <div>${p.sku || 'ไม่มี SKU'}</div>
-                    <div>ราคาทุน: <strong>${(p.cost || 0).toLocaleString()} ฿</strong> | คงเหลือ: <strong>${p.stock || 0} ชิ้น</strong></div>
-                    <div>ราคาขายปลีก: <strong>${p.price || 'ยังไม่ระบุ'}</strong></div>
+                    <div>${p.sku}</div>
+                    <div>ราคาทุน: <strong>${p.cost.toLocaleString()} ฿</strong> | คงเหลือ: <strong>${p.stock} ชิ้น</strong></div>
+                    <div>ราคาขายปลีก: <strong>${p.price}</strong></div>
                 </div>
                 <button class="edit-btn" onclick="editProduct(${p.id})">แก้ไข</button>
             </div>
@@ -195,6 +137,7 @@ function renderProducts(filter = '') {
     });
 }
 
+// --- LOGIC PHASE 3 ---
 function initExpenseValues() {
     const inputPkg = document.getElementById('input-packaging');
     const inputDec = document.getElementById('input-decoration');
@@ -205,12 +148,12 @@ function initExpenseValues() {
 
     if (!inputPkg) return;
 
-    inputPkg.value = expenseSettings.packaging || 0;
-    inputDec.value = expenseSettings.decoration || 0;
-    inputFee.value = expenseSettings.platformFee || 0;
+    inputPkg.value = expenseSettings.packaging;
+    inputDec.value = expenseSettings.decoration;
+    inputFee.value = expenseSettings.platformFee;
     if (inputOrderFee) inputOrderFee.value = expenseSettings.orderFee !== undefined ? expenseSettings.orderFee : 3;
     if (inputGrowthFee) inputGrowthFee.value = expenseSettings.growthFee !== undefined ? expenseSettings.growthFee : 3;
-    inputOth.value = expenseSettings.other || 0;
+    inputOth.value = expenseSettings.other;
 
     updateExpenseCalc();
     updateShippingDisplay();
@@ -261,6 +204,7 @@ function updateShippingDisplay() {
     if (document.getElementById('hist-grand-total')) document.getElementById('hist-grand-total').textContent = `${grandTotal.toFixed(2)} ฿`;
 }
 
+// --- LOGIC PHASE 4 ---
 function initPricingCalculator() {
     const selector = document.getElementById('product-selector');
     if (!selector) return;
@@ -308,6 +252,7 @@ function renderSetItems() {
     });
 }
 
+// ระบบคำนวณราคาขาย กำไรบาท และ % Gross Margin
 function updatePricingCalculation(triggerSource = 'margin') {
     const prodCostTotal = currentSetItems.reduce((sum, item) => sum + (item.cost * item.qty), 0);
 
@@ -334,11 +279,13 @@ function updatePricingCalculation(triggerSource = 'margin') {
     let profitMarginPct = 0;
 
     if (triggerSource === 'custom' && customPriceInput && parseFloat(customPriceInput.value) > 0) {
+        // คำนวณจากราคาขายที่ผู้ใช้กำหนดเอง (Custom Price)
         finalPrice = parseFloat(customPriceInput.value);
         const feeAmount = finalPrice * (totalFeePct / 100);
         netProfit = finalPrice - baseCost - feeAmount;
         profitMarginPct = finalPrice > 0 ? (netProfit / finalPrice) * 100 : 0;
     } else {
+        // คำนวณจาก % กำไรเป้าหมาย (% Margin)
         const targetMargin = targetMarginInput ? parseFloat(targetMarginInput.value) || 25 : 25;
         const marginDecimal = targetMargin / 100;
         const feeDecimal = totalFeePct / 100;
@@ -355,14 +302,18 @@ function updatePricingCalculation(triggerSource = 'margin') {
 
     const feeAmountFinal = finalPrice * (totalFeePct / 100);
 
+    // อัปเดตแสดงผลตัวเลขบนหน้าจอ
     if (document.getElementById('calc-total-cost')) document.getElementById('calc-total-cost').textContent = baseCost.toFixed(2);
     if (document.getElementById('calc-recommended-price')) document.getElementById('calc-recommended-price').textContent = finalPrice.toFixed(2);
     if (document.getElementById('summary-prod-cost')) document.getElementById('summary-prod-cost').textContent = `${prodCostTotal.toFixed(2)} ฿`;
     if (document.getElementById('summary-exp-cost')) document.getElementById('summary-exp-cost').textContent = `${expenseTotal.toFixed(2)} ฿`;
     if (document.getElementById('summary-fee-pct')) document.getElementById('summary-fee-pct').textContent = totalFeePct.toFixed(2);
     if (document.getElementById('summary-fee-amount')) document.getElementById('summary-fee-amount').textContent = `${feeAmountFinal.toFixed(2)} ฿`;
+    
+    // แสดงกำไรสุทธิเป็น บาท + %
     if (document.getElementById('summary-net-profit')) document.getElementById('summary-net-profit').textContent = `${netProfit.toFixed(2)} ฿`;
     if (document.getElementById('summary-profit-details')) document.getElementById('summary-profit-details').textContent = `(คิดเป็น Gross Margin: ${profitMarginPct.toFixed(1)}%)`;
+    
     if (document.getElementById('summary-final-price')) document.getElementById('summary-final-price').textContent = `${finalPrice.toFixed(2)} ฿`;
 }
 
@@ -393,32 +344,29 @@ function renderComparisons() {
     });
 }
 
-// --- APP INITIALIZATION ---
-
-document.addEventListener('DOMContentLoaded', async () => {
-    await loadAllDataFromSupabase();
-
-    // Realtime listeners
-    supabase
-        .channel('public:products')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-            fetchProductsFromSupabase();
-        })
-        .subscribe();
-
-    supabase
-        .channel('public:shop_settings')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, () => {
-            fetchSettingsFromSupabase();
-            fetchComparisonsFromSupabase();
-        })
-        .subscribe();
-
+// BIND EVENTS ON DOM READY
+document.addEventListener('DOMContentLoaded', () => {
+    // Form Product Add/Edit Modal
+    const openModalBtn = document.getElementById('open-modal-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
     const productForm = document.getElementById('product-form');
     const modal = document.getElementById('product-modal');
 
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', () => {
+            document.getElementById('modal-title').textContent = 'เพิ่มสินค้าใหม่';
+            productForm.reset();
+            document.getElementById('prod-id').value = '';
+            modal.style.display = 'flex';
+        });
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
+    }
+
     if (productForm) {
-        productForm.addEventListener('submit', async (e) => {
+        productForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const id = document.getElementById('prod-id').value;
             const name = document.getElementById('prod-name').value;
@@ -428,33 +376,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             const price = document.getElementById('prod-price').value;
             const imageFile = document.getElementById('prod-image').files[0];
 
-            const saveDataToSupabase = async (imageUrl) => {
-                const productData = {
-                    name,
-                    sku: sku || 'ไม่มี SKU',
-                    cost,
-                    stock,
-                    price: price ? `${price} ฿` : 'ยังไม่ระบุ',
-                    image: imageUrl || null
-                };
-
+            const saveProductData = (imageUrl) => {
                 if (id) {
-                    await supabase.from('products').update(productData).eq('id', id);
+                    products = products.map(p => p.id == id ? { ...p, name, sku: sku || 'ไม่มี SKU', cost, stock, price: price ? `${price} ฿` : 'ยังไม่ระบุ', image: imageUrl || p.image } : p);
                 } else {
-                    await supabase.from('products').insert([productData]);
+                    products.push({ id: Date.now(), name, sku: sku || 'ไม่มี SKU', cost, stock, price: price ? `${price} ฿` : 'ยังไม่ระบุ', image: imageUrl || null });
                 }
-
+                localStorage.setItem('shop_products', JSON.stringify(products));
+                renderProducts();
                 productForm.reset();
-                if (modal) modal.style.display = 'none';
+                modal.style.display = 'none';
             };
 
             if (imageFile) {
                 const reader = new FileReader();
-                reader.onload = async ev => await saveDataToSupabase(ev.target.result);
+                reader.onload = ev => saveProductData(ev.target.result);
                 reader.readAsDataURL(imageFile);
             } else {
-                const existing = products.find(p => p.id == id);
-                await saveDataToSupabase(existing ? existing.image : null);
+                saveProductData(null);
             }
         });
     }
@@ -464,6 +403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchInput.addEventListener('input', e => renderProducts(e.target.value));
     }
 
+    // Phase 3 Inputs
     ['input-packaging', 'input-decoration', 'input-platform-fee', 'input-order-fee', 'input-growth-fee', 'input-other', 'shipping-total', 'shipping-qty'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', updateExpenseCalc);
@@ -471,7 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const saveShipBtn = document.getElementById('save-shipping-btn');
     if (saveShipBtn) {
-        saveShipBtn.addEventListener('click', async () => {
+        saveShipBtn.addEventListener('click', () => {
             const total = parseFloat(document.getElementById('shipping-total').value) || 0;
             const qty = parseInt(document.getElementById('shipping-qty').value) || 0;
             const editingIndex = parseInt(document.getElementById('editing-round-index').value) || -1;
@@ -483,13 +423,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('editing-round-index').value = -1;
                 document.getElementById('form-shipping-label').textContent = 'ค่าขนส่งรวมรอบนี้ (บาท)';
                 saveShipBtn.textContent = 'บันทึกรอบขนส่ง';
+                alert('อัปเดตข้อมูลรอบขนส่งเรียบร้อยแล้ว!');
             } else {
                 expenseSettings.shippingRounds.push({ total, qty });
+                alert('บันทึกรอบขนส่งใหม่เรียบร้อยแล้ว!');
             }
 
-            await supabase.from('shop_settings').upsert({ id: 1, data: expenseSettings });
+            localStorage.setItem('shop_expense_settings', JSON.stringify(expenseSettings));
             updateShippingDisplay();
-            alert('บันทึกข้อมูลรอบขนส่งเรียบร้อย!');
         });
     }
 
@@ -514,10 +455,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const addRoundBtn = document.getElementById('add-new-round-btn');
     if (addRoundBtn) {
-        addRoundBtn.addEventListener('click', async () => {
+        addRoundBtn.addEventListener('click', () => {
             if (!expenseSettings.shippingRounds) expenseSettings.shippingRounds = [];
             expenseSettings.shippingRounds.push({ total: 100, qty: 10 });
-            await supabase.from('shop_settings').upsert({ id: 1, data: expenseSettings });
+            localStorage.setItem('shop_expense_settings', JSON.stringify(expenseSettings));
             
             document.getElementById('editing-round-index').value = -1;
             document.getElementById('form-shipping-label').textContent = 'ค่าขนส่งรวมรอบนี้ (บาท)';
@@ -526,12 +467,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('shipping-qty').value = 10;
             updateExpenseCalc();
             updateShippingDisplay();
+            alert('เปิดรอบขนส่งใหม่สำเร็จ!');
         });
     }
 
     const deleteRoundBtn = document.getElementById('delete-round-btn');
     if (deleteRoundBtn) {
-        deleteRoundBtn.addEventListener('click', async () => {
+        deleteRoundBtn.addEventListener('click', () => {
             const rounds = expenseSettings.shippingRounds || [];
             if (rounds.length <= 1) {
                 alert('ต้องมีข้อมูลรอบขนส่งอย่างน้อย 1 รอบ');
@@ -547,7 +489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('form-shipping-label').textContent = 'ค่าขนส่งรวมรอบนี้ (บาท)';
                 document.getElementById('save-shipping-btn').textContent = 'บันทึกรอบขนส่ง';
 
-                await supabase.from('shop_settings').upsert({ id: 1, data: expenseSettings });
+                localStorage.setItem('shop_expense_settings', JSON.stringify(expenseSettings));
                 
                 const last = rounds[rounds.length - 1];
                 document.getElementById('shipping-total').value = last.total;
@@ -555,13 +497,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 updateExpenseCalc();
                 updateShippingDisplay();
+                alert('ลบรอบขนส่งสำเร็จ!');
             }
         });
     }
 
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', async () => {
+        saveSettingsBtn.addEventListener('click', () => {
             expenseSettings.packaging = parseFloat(document.getElementById('input-packaging').value) || 0;
             expenseSettings.decoration = parseFloat(document.getElementById('input-decoration').value) || 0;
             expenseSettings.platformFee = parseFloat(document.getElementById('input-platform-fee').value) || 0;
@@ -569,11 +512,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             expenseSettings.growthFee = parseFloat(document.getElementById('input-growth-fee').value) || 0;
             expenseSettings.other = parseFloat(document.getElementById('input-other').value) || 0;
 
-            await supabase.from('shop_settings').upsert({ id: 1, data: expenseSettings });
+            localStorage.setItem('shop_expense_settings', JSON.stringify(expenseSettings));
             alert('บันทึกการตั้งค่าค่าใช้จ่ายเรียบร้อยแล้ว!');
         });
     }
 
+    // Phase 4 Event Listeners
     const addToSetBtn = document.getElementById('add-to-set-btn');
     if (addToSetBtn) {
         addToSetBtn.addEventListener('click', () => {
@@ -616,12 +560,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const saveSetComparisonBtn = document.getElementById('save-set-comparison-btn');
     if (saveSetComparisonBtn) {
-        saveSetComparisonBtn.addEventListener('click', async () => {
+        saveSetComparisonBtn.addEventListener('click', () => {
             if (currentSetItems.length === 0) {
                 alert('กรุณาเลือกสินค้าใส่เซ็ตก่อนบันทึกเปรียบเทียบครับ');
                 return;
             }
-            const setName = prompt('ตั้งชื่อเซ็ตสินค้า:', `เซ็ตที่ ${comparisonSets.length + 1}`);
+            const setName = prompt('ตั้งชื่อเซ็ตสินค้า (เช่น เซ็ตของขวัญ A, เซ็ตตุ๊กตาหมี Big):', `เซ็ตที่ ${comparisonSets.length + 1}`);
             if (!setName) return;
 
             const finalPriceText = document.getElementById('summary-final-price').textContent;
@@ -630,13 +574,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             comparisonSets.push({
                 name: setName,
                 itemsSummary: currentSetItems.map(i => `${i.name} x${i.qty}`).join(', '),
-                price: `${finalPriceText} ฿`,
+                price: `${finalPriceText}`,
                 profit: `${netProfitText}`
             });
 
-            await supabase.from('shop_settings').upsert({ id: 2, data: comparisonSets });
+            localStorage.setItem('shop_comparisons', JSON.stringify(comparisonSets));
             renderComparisons();
             alert('บันทึกเซ็ตเปรียบเทียบเรียบร้อยแล้ว!');
         });
     }
+
+    renderProducts();
 });
