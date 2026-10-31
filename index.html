@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Shop Manager - All Phases</title>
+    <title>My Shop Manager - Realtime Supabase</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -41,7 +41,7 @@
 
             <div class="section-header">
                 <h3>รายการสินค้าทั้งหมด</h3>
-                <button id="open-modal-btn" class="btn-primary">+ เพิ่มสินค้า</button>
+                <button id="open-modal-btn" class="btn-primary" onclick="openAddModal()">+ เพิ่มสินค้า</button>
             </div>
 
             <div class="search-box">
@@ -273,7 +273,7 @@
                 </div>
             </div>
 
-            <!-- ส่วนคำนวณราคาขายและกำไรเป้าหมาย -->
+            <!-- เป้าหมายกำไรและราคาขาย -->
             <div class="expense-block">
                 <div class="block-header">
                     <h3>เป้าหมายกำไรและราคาขาย</h3>
@@ -307,12 +307,11 @@
                     <span id="summary-fee-amount">0.00 ฿</span>
                 </div>
                 
-                <!-- แสดงกำไรสุทธิแบบระบุทั้ง บาท และ % -->
                 <div class="summary-line highlight-fee">
                     <span>กำไรสุทธิหลังหักค่าธรรมเนียม</span>
                     <div style="text-align: right;">
                         <span id="summary-net-profit" style="font-size: 16px; font-weight: bold; color: #0f9d58;">0.00 ฿</span>
-                        <div id="summary-profit-details" style="font-size: 11px; color: #5f6368; font-weight: normal;">(คิดเป็น 0.00% จากราคาขาย)</div>
+                        <div id="summary-profit-details" style="font-size: 11px; color: #5f6368; font-weight: normal;">(คิดเป็น 0.00%)</div>
                     </div>
                 </div>
 
@@ -368,13 +367,15 @@
                     <input type="number" id="prod-price" step="any">
                 </div>
                 <div class="form-actions">
-                    <button type="button" id="close-modal-btn" class="btn-secondary">ยกเลิก</button>
+                    <button type="button" id="close-modal-btn" class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
                     <button type="submit" class="btn-primary">บันทึก</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Supabase JS Library & Main Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
 </html>
