@@ -41,7 +41,7 @@
 
             <div class="section-header">
                 <h3>รายการสินค้าทั้งหมด</h3>
-                <button id="open-modal-btn" class="btn-primary">+ เพิ่มสินค้า</button>
+                <button id="open-modal-btn" class="btn-primary" onclick="openAddModal()">+ เพิ่มสินค้า</button>
             </div>
 
             <div class="search-box">
@@ -367,7 +367,7 @@
                     <input type="number" id="prod-price" step="any">
                 </div>
                 <div class="form-actions">
-                    <button type="button" id="close-modal-btn" class="btn-secondary">ยกเลิก</button>
+                    <button type="button" id="close-modal-btn" class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
                     <button type="submit" class="btn-primary">บันทึก</button>
                 </div>
             </form>

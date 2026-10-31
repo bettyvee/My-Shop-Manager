@@ -1,7 +1,15 @@
 // --- CONFIG SUPABASE ---
 const SUPABASE_URL = 'https://yubfkorfgwsjdkscjttq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hs0Yn0u566BmuHjrboNcnw_XJjOLcKw';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// สร้างตัวแปร Client โดยเช็กเพื่อป้องกันการสร้างซ้ำ
+let supabase;
+if (window.supabaseClient) {
+    supabase = window.supabaseClient;
+} else {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.supabaseClient = supabase;
+}
 
 let products = [];
 let expenseSettings = {
@@ -16,6 +24,90 @@ let expenseSettings = {
 
 let currentSetItems = [];
 let comparisonSets = [];
+
+// --- GLOBAL FUNCTIONS FOR UI BUTTONS ---
+
+window.switchTab = function(tab) {
+    const sec2 = document.getElementById('section-phase2');
+    const sec3 = document.getElementById('section-phase3');
+    const sec4 = document.getElementById('section-phase4');
+    const btn2 = document.getElementById('btn-tab-phase2');
+    const btn3 = document.getElementById('btn-tab-phase3');
+    const btn4 = document.getElementById('btn-tab-phase4');
+    const mainTitle = document.getElementById('main-title');
+    const mainSub = document.getElementById('main-subtitle');
+    const badge = document.getElementById('phase-badge');
+
+    if (!sec2 || !sec3 || !sec4) return;
+
+    sec2.style.display = 'none';
+    sec3.style.display = 'none';
+    sec4.style.display = 'none';
+    if (btn2) btn2.classList.remove('active');
+    if (btn3) btn3.classList.remove('active');
+    if (btn4) btn4.classList.remove('active');
+
+    if (tab === 'phase2') {
+        sec2.style.display = 'block';
+        if (btn2) btn2.classList.add('active');
+        if (mainTitle) mainTitle.textContent = 'My Shop Manager';
+        if (mainSub) mainSub.textContent = 'Product Database';
+        if (badge) badge.textContent = 'Phase 2';
+        renderProducts();
+    } else if (tab === 'phase3') {
+        sec3.style.display = 'block';
+        if (btn3) btn3.classList.add('active');
+        if (mainTitle) mainTitle.textContent = 'Expense Management';
+        if (mainSub) mainSub.textContent = 'จัดการค่าใช้จ่ายของร้านค้า';
+        if (badge) badge.textContent = 'Phase 3';
+        initExpenseValues();
+    } else if (tab === 'phase4') {
+        sec4.style.display = 'block';
+        if (btn4) btn4.classList.add('active');
+        if (mainTitle) mainTitle.textContent = 'Pricing Calculator';
+        if (mainSub) mainSub.textContent = 'ระบบคำนวณต้นทุนและราคาขาย';
+        if (badge) badge.textContent = 'Phase 4';
+        initPricingCalculator();
+    }
+};
+
+window.openAddModal = function() {
+    const modal = document.getElementById('product-modal');
+    const form = document.getElementById('product-form');
+    if (modal && form) {
+        document.getElementById('modal-title').textContent = 'เพิ่มสินค้าใหม่';
+        form.reset();
+        document.getElementById('prod-id').value = '';
+        modal.style.display = 'flex';
+    }
+};
+
+window.closeModal = function() {
+    const modal = document.getElementById('product-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.deleteProduct = async function(id) {
+    if (confirm('คุณต้องการลบรายการสินค้านี้ใช่หรือไม่?')) {
+        const { error } = await supabase.from('products').delete().eq('id', id);
+        if (error) alert('เกิดข้อผิดพลาดในการลบสินค้า');
+    }
+};
+
+window.editProduct = function(id) {
+    const p = products.find(item => item.id === id);
+    if (!p) return;
+    document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลสินค้า';
+    document.getElementById('prod-id').value = p.id;
+    document.getElementById('prod-name').value = p.name;
+    document.getElementById('prod-sku').value = p.sku === 'ไม่มี SKU' ? '' : p.sku;
+    document.getElementById('prod-cost').value = p.cost;
+    document.getElementById('prod-stock').value = p.stock;
+    document.getElementById('prod-price').value = p.price && p.price.replace(' ฿', '') !== 'ยังไม่ระบุ' ? p.price.replace(' ฿', '') : '';
+    document.getElementById('product-modal').style.display = 'flex';
+};
+
+// --- DATA FETCHING & LOGIC ---
 
 async function loadAllDataFromSupabase() {
     await fetchProductsFromSupabase();
@@ -48,50 +140,6 @@ async function fetchComparisonsFromSupabase() {
     }
 }
 
-window.switchTab = function(tab) {
-    const sec2 = document.getElementById('section-phase2');
-    const sec3 = document.getElementById('section-phase3');
-    const sec4 = document.getElementById('section-phase4');
-    const btn2 = document.getElementById('btn-tab-phase2');
-    const btn3 = document.getElementById('btn-tab-phase3');
-    const btn4 = document.getElementById('btn-tab-phase4');
-    const mainTitle = document.getElementById('main-title');
-    const mainSub = document.getElementById('main-subtitle');
-    const badge = document.getElementById('phase-badge');
-
-    if (!sec2 || !sec3 || !sec4) return;
-
-    sec2.style.display = 'none';
-    sec3.style.display = 'none';
-    sec4.style.display = 'none';
-    if (btn2) btn2.classList.remove('active');
-    if (btn3) btn3.classList.remove('active');
-    if (btn4) btn4.classList.remove('active');
-
-    if (tab === 'phase2') {
-        sec2.style.display = 'block';
-        if (btn2) btn2.classList.add('active');
-        mainTitle.textContent = 'My Shop Manager';
-        mainSub.textContent = 'Product Database';
-        badge.textContent = 'Phase 2';
-        renderProducts();
-    } else if (tab === 'phase3') {
-        sec3.style.display = 'block';
-        if (btn3) btn3.classList.add('active');
-        mainTitle.textContent = 'Expense Management';
-        mainSub.textContent = 'จัดการค่าใช้จ่ายของร้านค้า';
-        badge.textContent = 'Phase 3';
-        initExpenseValues();
-    } else if (tab === 'phase4') {
-        sec4.style.display = 'block';
-        if (btn4) btn4.classList.add('active');
-        mainTitle.textContent = 'Pricing Calculator';
-        mainSub.textContent = 'ระบบคำนวณต้นทุนและราคาขาย';
-        badge.textContent = 'Phase 4';
-        initPricingCalculator();
-    }
-};
-
 function calculateProductTier(cost, minCost, maxCost) {
     if (products.length < 2 || minCost === maxCost) return { text: 'รอจัดระดับ', class: 'default' };
     const range = maxCost - minCost;
@@ -99,26 +147,6 @@ function calculateProductTier(cost, minCost, maxCost) {
     if (cost >= minCost + range / 3) return { text: 'Medium', class: 'medium' };
     return { text: 'Small', class: 'small' };
 }
-
-window.deleteProduct = async function(id) {
-    if (confirm('คุณต้องการลบรายการสินค้านี้ใช่หรือไม่?')) {
-        const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) alert('เกิดข้อผิดพลาดในการลบสินค้า');
-    }
-};
-
-window.editProduct = function(id) {
-    const p = products.find(item => item.id === id);
-    if (!p) return;
-    document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลสินค้า';
-    document.getElementById('prod-id').value = p.id;
-    document.getElementById('prod-name').value = p.name;
-    document.getElementById('prod-sku').value = p.sku === 'ไม่มี SKU' ? '' : p.sku;
-    document.getElementById('prod-cost').value = p.cost;
-    document.getElementById('prod-stock').value = p.stock;
-    document.getElementById('prod-price').value = p.price && p.price.replace(' ฿', '') !== 'ยังไม่ระบุ' ? p.price.replace(' ฿', '') : '';
-    document.getElementById('product-modal').style.display = 'flex';
-};
 
 function renderProducts(filter = '') {
     const productList = document.getElementById('product-list');
@@ -368,41 +396,29 @@ function renderComparisons() {
     });
 }
 
+// --- INITIALIZATION ---
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadAllDataFromSupabase();
 
+    // Realtime listeners
     supabase
         .channel('public:products')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
             fetchProductsFromSupabase();
         })
         .subscribe();
 
     supabase
         .channel('public:shop_settings')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, payload => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, () => {
             fetchSettingsFromSupabase();
             fetchComparisonsFromSupabase();
         })
         .subscribe();
 
-    const openModalBtn = document.getElementById('open-modal-btn');
-    const closeModalBtn = document.getElementById('close-modal-btn');
     const productForm = document.getElementById('product-form');
     const modal = document.getElementById('product-modal');
-
-    if (openModalBtn) {
-        openModalBtn.addEventListener('click', () => {
-            document.getElementById('modal-title').textContent = 'เพิ่มสินค้าใหม่';
-            productForm.reset();
-            document.getElementById('prod-id').value = '';
-            modal.style.display = 'flex';
-        });
-    }
-
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
-    }
 
     if (productForm) {
         productForm.addEventListener('submit', async (e) => {
@@ -432,7 +448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 productForm.reset();
-                modal.style.display = 'none';
+                if (modal) modal.style.display = 'none';
             };
 
             if (imageFile) {
@@ -608,7 +624,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('กรุณาเลือกสินค้าใส่เซ็ตก่อนบันทึกเปรียบเทียบครับ');
                 return;
             }
-            const setName = prompt('ตั้งชื่อเซ็ตสินค้า (เช่น เซ็ตของขวัญ A, เซ็ตตุ๊กตาหมี Big):', `เซ็ตที่ ${comparisonSets.length + 1}`);
+            const setName = prompt('ตั้งชื่อเซ็ตสินค้า:', `เซ็ตที่ ${comparisonSets.length + 1}`);
             if (!setName) return;
 
             const finalPriceText = document.getElementById('summary-final-price').textContent;
