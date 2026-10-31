@@ -1,6 +1,6 @@
 // --- CONFIG SUPABASE ---
 const SUPABASE_URL = 'yubfkorfgwsjdkscjttq';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1YmZrb3JmZ3dzamRrc2NqdHRxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NTA0OTQsImV4cCI6MjEwOTAyNjQ5NH0.WINyP10wdTBFyCq43WCu1YGzsp0QI1--IobvGDnAW2U';
+const SUPABASE_KEY = 'sb_publishable_hs0Yn0u566BmuHjrboNcnw_XJjOLcKw';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let products = [];
