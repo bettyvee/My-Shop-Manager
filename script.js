@@ -2,7 +2,6 @@
 const SUPABASE_URL = 'https://yubfkorfgwsjdkscjttq.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hs0Yn0u566BmuHjrboNcnw_XJjOLcKw';
 
-// ป้องกันการประกาศตัวแปร supabase ซ้ำซ้อน
 var supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 var products = [];
@@ -84,7 +83,12 @@ window.closeModal = function() {
 window.deleteProduct = async function(id) {
     if (confirm('คุณต้องการลบรายการสินค้านี้ใช่หรือไม่?')) {
         const { error } = await supabase.from('products').delete().eq('id', id);
-        if (error) alert('เกิดข้อผิดพลาดในการลบสินค้า');
+        if (error) {
+            alert('เกิดข้อผิดพลาดในการลบสินค้า');
+        } else {
+            // ดึงข้อมูลใหม่ทันทีหลังลบสำเร็จ
+            await fetchProductsFromSupabase();
+        }
     }
 };
 
@@ -111,7 +115,7 @@ async function loadAllDataFromSupabase() {
 
 async function fetchProductsFromSupabase() {
     if (!supabase) return;
-    const { data, error } = await supabase.from('products').select('*');
+    const { data, error } = await supabase.from('products').select('*').order('id', { ascending: false });
     if (!error && data) {
         products = data;
         renderProducts();
@@ -399,18 +403,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadAllDataFromSupabase();
 
     if (supabase) {
-        // Realtime Subscription สำหรับ products
+        // เปิดระบบ Realtime รับการเปลี่ยนแปลงตาราง products อัตโนมัติทันที
         supabase
             .channel('public:products')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, function() {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, function(payload) {
                 fetchProductsFromSupabase();
             })
             .subscribe();
 
-        // Realtime Subscription สำหรับ shop_settings
+        // เปิดระบบ Realtime รับการเปลี่ยนแปลงตาราง shop_settings อัตโนมัติทันที
         supabase
             .channel('public:shop_settings')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, function() {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, function(payload) {
                 fetchSettingsFromSupabase();
                 fetchComparisonsFromSupabase();
             })
@@ -449,6 +453,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 productForm.reset();
                 if (modal) modal.style.display = 'none';
+                
+                // บังคับดึงข้อมูลใหม่มาแสดงทันทีหลังบันทึก
+                await fetchProductsFromSupabase();
             };
 
             if (imageFile) {
