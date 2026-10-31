@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Shop Manager - All Phases</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Main Header -->
+        <div class="header">
+            <div>
+                <h1 id="main-title">My Shop Manager</h1>
+                <p class="subtitle" id="main-subtitle">Product Database</p>
+            </div>
+            <div class="header-badges">
+                <span class="badge" id="phase-badge">Phase 2</span>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" id="btn-tab-phase2" onclick="switchTab('phase2')">📦 Product DB</button>
+            <button class="tab-btn" id="btn-tab-phase3" onclick="switchTab('phase3')">💰 Expenses</button>
+            <button class="tab-btn" id="btn-tab-phase4" onclick="switchTab('phase4')">🧮 Pricing Calculator</button>
+        </div>
+
+        <!-- ==================== PHASE 2: PRODUCT DATABASE ==================== -->
+        <div id="section-phase2" class="phase-section">
+            <div class="summary-container">
+                <div class="summary-card">
+                    <span class="summary-label">จำนวนสินค้า</span>
+                    <h2><span id="total-items">0</span> <span class="unit">รายการ</span></h2>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">มูลค่าต้นทุนรวมในสต็อก</span>
+                    <h2><span id="total-cost">0</span> <span class="unit">บาท</span></h2>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h3>รายการสินค้าทั้งหมด</h3>
+                <button id="open-modal-btn" class="btn-primary">+ เพิ่มสินค้า</button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="ค้นหาสินค้า...">
+            </div>
+
+            <div id="product-list" class="product-list"></div>
+
+            <div class="tier-section">
+                <h4>Smart Product Tier Classification</h4>
+                <div class="tier-box">
+                    <p><strong>ระบบวิเคราะห์และแบ่งระดับสินค้าจากราคาต้นทุนอัตโนมัติ</strong></p>
+                    <p id="tier-message">ต้องมีข้อมูลสินค้าอย่างน้อย 2 รายการขึ้นไป จึงจะเริ่มวิเคราะห์การกระจายราคาทุนเพื่อจัดกลุ่ม Big / Medium / Small ได้</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PHASE 3: EXPENSE MANAGEMENT ==================== -->
+        <div id="section-phase3" class="phase-section" style="display: none;">
+            <div class="summary-container">
+                <div class="summary-card purple">
+                    <span class="summary-label">ค่าใช้จ่ายต่อเซ็ต</span>
+                    <h2><span id="top-expense-per-set">35.00</span> <span class="unit">฿</span></h2>
+                </div>
+                <div class="summary-card green">
+                    <span class="summary-label">Total Fee (%)</span>
+                    <h2><span id="top-platform-fee">11.00</span><span class="unit">%</span></h2>
+                </div>
+            </div>
+
+            <!-- Inbound Shipping -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>01. Inbound Shipping</h3>
+                    <span class="tag">ค่าขนส่งสินค้าเข้า</span>
+                </div>
+                <p class="block-desc">บันทึกค่าขนส่งจากร้านค้าส่งมายังร้านเรา เพื่อเฉลี่ยเข้าต้นทุนสินค้า</p>
+
+                <input type="hidden" id="editing-round-index" value="-1">
+                <div class="form-group">
+                    <label id="form-shipping-label">ค่าขนส่งรวมรอบนี้ (บาท)</label>
+                    <input type="number" id="shipping-total" placeholder="100" value="100" step="any">
+                </div>
+
+                <div class="form-group">
+                    <label>จำนวนสินค้าที่ได้รับ (ชิ้น)</label>
+                    <input type="number" id="shipping-qty" placeholder="10" value="10">
+                </div>
+
+                <div class="shipping-result">
+                    <span>ค่าขนส่งเฉลี่ยต่อชิ้น</span>
+                    <strong id="shipping-per-piece">10.00 ฿</strong>
+                </div>
+                
+                <button type="button" id="save-shipping-btn" class="btn-outline-full">บันทึกรอบขนส่ง</button>
+
+                <div class="history-box" id="shipping-history-box">
+                    <div class="history-header">
+                        <h4>Inbound Shipping History</h4>
+                        <span class="badge-success" id="history-status-badge">บันทึกแล้ว</span>
+                    </div>
+                    <div class="history-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p class="history-sub" id="hist-record-title">SHIPPING RECORD #001</p>
+                                <h2 class="history-amount" id="hist-amount">100.00 ฿</h2>
+                                <p class="history-sub">ค่าขนส่งสินค้าตามรอบที่ <span id="hist-round-num">1</span></p>
+                            </div>
+                            <div>
+                                <button type="button" id="edit-current-round-btn" class="btn-sm-edit">แก้ไขรอบนี้</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-row">
+                        <span>จำนวนสินค้า</span>
+                        <strong id="hist-qty">10 ชิ้น</strong>
+                    </div>
+                    <div class="history-row highlight">
+                        <span>ค่าขนส่งต่อชิ้น</span>
+                        <strong id="hist-per-piece">10.00 ฿</strong>
+                    </div>
+                    <div class="history-summary">
+                        <div>
+                            <span>จำนวนรอบที่บันทึก</span>
+                            <strong id="hist-total-rounds">1 รอบ</strong>
+                        </div>
+                        <div>
+                            <span>ค่าขนส่งรวมทั้งหมด</span>
+                            <strong id="hist-grand-total">100.00 ฿</strong>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 14px;">
+                        <button type="button" id="add-new-round-btn" class="btn-outline-full" style="margin-top:0; flex:1;">+ เพิ่มรอบขนส่งใหม่</button>
+                        <button type="button" id="delete-round-btn" class="btn-outline-danger" style="flex:1;">ลบรอบนี้</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packaging -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>02. Packaging</h3>
+                    <span class="tag">ต่อเซ็ต</span>
+                </div>
+                <p class="block-desc">ค่ากล่อง ซอง เทป กระดาษกันกระแทก</p>
+                <div class="form-group">
+                    <label>ค่า Packaging ต่อเซ็ต (บาท)</label>
+                    <input type="number" id="input-packaging" value="20" step="any">
+                </div>
+            </div>
+
+            <!-- Decoration -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>03. Decoration</h3>
+                    <span class="tag">ต่อเซ็ต</span>
+                </div>
+                <p class="block-desc">ค่าริบบิ้น สติกเกอร์ การ์ด และของตกแต่ง</p>
+                <div class="form-group">
+                    <label>ค่า Decoration ต่อเซ็ต (บาท)</label>
+                    <input type="number" id="input-decoration" value="15" step="any">
+                </div>
+            </div>
+
+            <!-- Platform & Growth Fees -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>04. Platform & Growth Fees</h3>
+                    <span class="tag">เปอร์เซ็นต์</span>
+                </div>
+                <p class="block-desc">ค่าธรรมเนียมแพลตฟอร์ม ค่าคำสั่งซื้อ และค่าสนับสนุนการเติบโต</p>
+                <div class="form-group">
+                    <label>ค่าธรรมเนียมแพลตฟอร์ม (%)</label>
+                    <input type="number" id="input-platform-fee" value="5" step="any">
+                </div>
+                <div class="form-group">
+                    <label>ค่าธรรมเนียมคำสั่งซื้อ (%)</label>
+                    <input type="number" id="input-order-fee" value="3" step="any">
+                </div>
+                <div class="form-group">
+                    <label>ค่าธรรมเนียมสนับสนุนการเติบโตของร้าน (%)</label>
+                    <input type="number" id="input-growth-fee" value="3" step="any">
+                </div>
+            </div>
+
+            <!-- Other Expenses -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>05. Other Expenses</h3>
+                    <span class="tag">ต่อเซ็ต</span>
+                </div>
+                <p class="block-desc">ค่าใช้จ่ายอื่น ๆ ที่ต้องการรวมในการคำนวณ</p>
+                <div class="form-group">
+                    <label>ค่าใช้จ่ายอื่นต่อเซ็ต (บาท)</label>
+                    <input type="number" id="input-other" value="0" step="any">
+                </div>
+            </div>
+
+            <div class="expense-summary-section">
+                <h4>Expense Summary</h4>
+                <div class="summary-line">
+                    <span>Packaging</span>
+                    <span id="sum-packaging">20.00 ฿</span>
+                </div>
+                <div class="summary-line">
+                    <span>Decoration</span>
+                    <span id="sum-decoration">15.00 ฿</span>
+                </div>
+                <div class="summary-line">
+                    <span>Other Expenses</span>
+                    <span id="sum-other">0.00 ฿</span>
+                </div>
+                <div class="summary-line highlight-fee">
+                    <span>รวมค่าธรรมเนียม (%)</span>
+                    <span id="sum-total-fee">11.00 %</span>
+                </div>
+
+                <div class="total-set-box">
+                    <span>รวมค่าใช้จ่ายต่อเซ็ต</span>
+                    <strong id="sum-total-set">35.00 ฿</strong>
+                </div>
+
+                <button type="button" id="save-settings-btn" class="btn-dark-full">บันทึกการตั้งค่าค่าใช้จ่าย</button>
+            </div>
+        </div>
+
+        <!-- ==================== PHASE 4: PRICING CALCULATOR ==================== -->
+        <div id="section-phase4" class="phase-section" style="display: none;">
+            <div class="summary-container">
+                <div class="summary-card purple">
+                    <span class="summary-label">ต้นทุนรวมต่อเซ็ต</span>
+                    <h2><span id="calc-total-cost">0.00</span> <span class="unit">฿</span></h2>
+                </div>
+                <div class="summary-card green">
+                    <span class="summary-label">ราคาขายแนะนำ</span>
+                    <h2><span id="calc-recommended-price">0.00</span> <span class="unit">฿</span></h2>
+                </div>
+            </div>
+
+            <!-- เลือกสินค้าใส่เซ็ต -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>เลือกสินค้าใส่เซ็ต</h3>
+                    <span class="tag">Product Selector</span>
+                </div>
+                <p class="block-desc">พิมพ์ค้นหาหรือเลือกสินค้าจากคลังเพื่อประกอบเป็นเซ็ต</p>
+                
+                <div class="form-group">
+                    <label>ค้นหาและเลือกสินค้า</label>
+                    <select id="product-selector" class="form-control">
+                        <option value="">-- กรุณาเลือกสินค้าจากคลัง --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>จำนวนในเซ็ตนี้ (ชิ้น)</label>
+                    <input type="number" id="selector-qty" value="1" min="1">
+                </div>
+                <button type="button" id="add-to-set-btn" class="btn-outline-full">+ เพิ่มสินค้านี้ลงในเซ็ต</button>
+            </div>
+
+            <!-- รายการสินค้าในเซ็ตปัจจุบัน -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>รายการสินค้าในเซ็ตปัจจุบัน</h3>
+                    <span class="tag" id="set-items-count">0 รายการ</span>
+                </div>
+                <div id="set-items-list" class="set-items-container">
+                    <p style="text-align:center; color:#888; font-size:13px; padding:10px;">ยังไม่มีสินค้าในเซ็ต</p>
+                </div>
+            </div>
+
+            <!-- ส่วนคำนวณราคาขายและกำไรเป้าหมาย -->
+            <div class="expense-block">
+                <div class="block-header">
+                    <h3>เป้าหมายกำไรและราคาขาย</h3>
+                    <span class="tag">Pricing Target</span>
+                </div>
+                
+                <div class="form-group">
+                    <label>กำไรเป้าหมาย (% Gross Margin)</label>
+                    <input type="number" id="target-margin" value="25" step="any">
+                </div>
+
+                <div class="form-group" style="margin-top: 18px; border-top: 1px dashed #eee; padding-top: 14px;">
+                    <label>ทดลองกำหนดราคาขายเอง (บาท)</label>
+                    <input type="number" id="custom-price-input" placeholder="เช่น 169" step="any">
+                </div>
+            </div>
+
+            <!-- ผลการคำนวณ -->
+            <div class="expense-summary-section">
+                <h4>Calculation Summary</h4>
+                <div class="summary-line">
+                    <span>ต้นทุนสินค้าในเซ็ต</span>
+                    <span id="summary-prod-cost">0.00 ฿</span>
+                </div>
+                <div class="summary-line">
+                    <span>ค่าใช้จ่ายรวมต่อเซ็ต (Ship + Pkg + Dec + Oth)</span>
+                    <span id="summary-exp-cost">0.00 ฿</span>
+                </div>
+                <div class="summary-line">
+                    <span>ค่าธรรมเนียมรวม (<span id="summary-fee-pct">11.00</span>%)</span>
+                    <span id="summary-fee-amount">0.00 ฿</span>
+                </div>
+                
+                <!-- แสดงกำไรสุทธิแบบระบุทั้ง บาท และ % -->
+                <div class="summary-line highlight-fee">
+                    <span>กำไรสุทธิหลังหักค่าธรรมเนียม</span>
+                    <div style="text-align: right;">
+                        <span id="summary-net-profit" style="font-size: 16px; font-weight: bold; color: #0f9d58;">0.00 ฿</span>
+                        <div id="summary-profit-details" style="font-size: 11px; color: #5f6368; font-weight: normal;">(คิดเป็น 0.00% จากราคาขาย)</div>
+                    </div>
+                </div>
+
+                <div class="total-set-box">
+                    <span>ราคาขายสุทธิที่ต้องตั้ง</span>
+                    <strong id="summary-final-price">0.00 ฿</strong>
+                </div>
+
+                <button type="button" id="save-set-comparison-btn" class="btn-dark-full">บันทึกเซ็ตนี้เพื่อเปรียบเทียบ</button>
+            </div>
+
+            <!-- เปรียบเทียบเซ็ตสินค้า -->
+            <div class="expense-block" style="margin-top: 30px;">
+                <div class="block-header">
+                    <h3>เปรียบเทียบเซ็ตสินค้า (Big Item Comparison)</h3>
+                    <span class="tag">Comparison</span>
+                </div>
+                <div id="comparison-list" style="margin-top: 12px;">
+                    <p style="text-align:center; color:#888; font-size:13px;">ยังไม่มีการบันทึกเซ็ตเปรียบเทียบ</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal เพิ่ม/แก้ไขสินค้า -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">เพิ่มสินค้าใหม่</h3>
+            <form id="product-form">
+                <input type="hidden" id="prod-id">
+                <div class="form-group">
+                    <label>ชื่อสินค้า (จำเป็น)*</label>
+                    <input type="text" id="prod-name" required>
+                </div>
+                <div class="form-group">
+                    <label>SKU / รหัสสินค้า</label>
+                    <input type="text" id="prod-sku">
+                </div>
+                <div class="form-group">
+                    <label>รูปภาพสินค้า</label>
+                    <input type="file" id="prod-image" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>ราคาทุน (บาท) (จำเป็น)*</label>
+                    <input type="number" id="prod-cost" step="any" required>
+                </div>
+                <div class="form-group">
+                    <label>จำนวนคงเหลือ (ชิ้น)</label>
+                    <input type="number" id="prod-stock" value="0">
+                </div>
+                <div class="form-group">
+                    <label>ราคาขายปลีก (บาท)</label>
+                    <input type="number" id="prod-price" step="any">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="close-modal-btn" class="btn-secondary">ยกเลิก</button>
+                    <button type="submit" class="btn-primary">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
